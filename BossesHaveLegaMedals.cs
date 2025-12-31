@@ -16,8 +16,8 @@ public record ModMetadata : AbstractModMetadata
     public override string Name { get; init; } = "Bosses Have Lega Medals";
     public override string Author { get; init; } = "acidphantasm";
     public override List<string>? Contributors { get; init; }
-    public override SemanticVersioning.Version Version { get; init; } = new("2.0.0");
-    public override SemanticVersioning.Range SptVersion { get; init; } = new("~4.0.0");
+    public override SemanticVersioning.Version Version { get; init; } = new("2.0.1");
+    public override SemanticVersioning.Range SptVersion { get; init; } = new("~4.0.10");
     public override List<string>? Incompatibilities { get; init; }
     public override Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; }
     public override string? Url { get; init; }
@@ -50,8 +50,10 @@ public class BossesHaveLegaMedals(
 
         foreach (var (key, botType) in bots)
         {
-            if (!key.Contains("boss") || key.Contains("bosstest")) continue;
-
+            var botName = key.ToLowerInvariant();
+            var isBoss = botName.Contains("boss") || _modConfig.IncludeFollowers && botName.Contains("follower");
+            
+            if (!isBoss) continue;
             var bossPockets = botType.BotInventory.Items.Pockets;
             var totalBossPocketValues = bossPockets.Sum( kvp => kvp.Value);
 
@@ -61,7 +63,7 @@ public class BossesHaveLegaMedals(
 
             guess = _modConfig.LegaMedalChance / 100 * totalBossPocketValues;
             value = Math.Round((_modConfig.LegaMedalChance / 100) * (totalBossPocketValues + guess));
-            bossPockets["6656560053eaaa7a23349c86"] = value;
+            bossPockets.TryAdd(ItemTpl.BARTER_LEGA_MEDAL, value);
         }
     }
 }
@@ -69,4 +71,5 @@ public class BossesHaveLegaMedals(
 public class ModConfig
 {
     public double LegaMedalChance { get; set; }
+    public bool IncludeFollowers { get; set; }
 }

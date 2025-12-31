@@ -1,3 +1,4 @@
 {
-    "LegaMedalChance": 15
+  "GpCoinChance": 15,
+  "IncludeFollowers": false
 }
