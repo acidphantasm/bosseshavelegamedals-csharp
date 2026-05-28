@@ -8,7 +8,7 @@ using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Services;
 
-namespace _bossesHaveLegaMedals;
+namespace BossesHaveLegaMedals;
 
 public record ModMetadata : AbstractModMetadata
 {
