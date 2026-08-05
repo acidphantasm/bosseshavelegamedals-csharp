@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>BossesHaveLegaMedals</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <!-- The two lines below will set the output path for the binaries -->
     <OutputPath>bin\$(Configuration)\$(ProjectName)\$(AssemblyName)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -20,7 +20,7 @@
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     </PropertyGroup>
     <PropertyGroup>
-        <TarkovDir Condition=" '$(TarkovDir)' == '' ">D:\SPT 4.0.0 DEV\</TarkovDir>
+        <TarkovDir Condition=" '$(TarkovDir)' == '' ">D:\SPT\</TarkovDir>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -28,22 +28,27 @@
     </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SPTarkov.Common" Version="4.0.10" />
-    <PackageReference Include="SPTarkov.DI" Version="4.0.10" />
-    <PackageReference Include="SPTarkov.Reflection" Version="4.0.10" />
-    <PackageReference Include="SPTarkov.Server.Core" Version="4.0.10" />
+    <PackageReference Include="SPTarkov.Common" Version="4.1.1" />
+    <PackageReference Include="SPTarkov.DI" Version="4.1.1" />
+    <PackageReference Include="SPTarkov.Server.Core" Version="4.1.1" />
   </ItemGroup>
 
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <ItemGroup>
+    <Content Update="config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
         <PropertyGroup>
-            <ModOutputDir>$(TarkovDir)SPT\user\mods\$(ProjectName)\</ModOutputDir>
-            <ReleaseOutputDir>$(ProjectDir)release\$(ProjectName)\SPT\user\mods\$(ProjectName)\</ReleaseOutputDir>
+            <ModOutputDir>$(TarkovDir)SPT_Runtime\user\mods\$(ProjectName)\</ModOutputDir>
+            <ReleaseOutputDir>$(ProjectDir)release\$(ProjectName)\SPT_Runtime\user\mods\$(ProjectName)\</ReleaseOutputDir>
             <ZipFile>$(ProjectDir)release\$(ProjectName).7z</ZipFile>
             <SevenZipExe>"C:\Program Files\7-Zip\7z.exe"</SevenZipExe>
         </PropertyGroup>
 
         <ItemGroup>
-            <ServerComponents Include="$(ProjectDir)bin\Release\$(ProjectName)\*.*" />
+            <ServerComponents Include="$(TargetDir)*.*" />
         </ItemGroup>
 
         <Copy SourceFiles="@(ServerComponents)" DestinationFolder="$(ModOutputDir)%(RecursiveDir)" />
@@ -55,7 +60,7 @@
 
         <Delete Files="$(ZipFile)" Condition="Exists('$(ZipFile)')" />
 
-        <Exec Command='$(SevenZipExe) a -t7z "$(ZipFile)" "$(ProjectDir)release\$(ProjectName)\*" -mx=5 -m0=lzma2' />
+        <Exec Command='$(SevenZipExe) a -t7z "$(ZipFile)" "$(ProjectDir)release\$(ProjectName)\*" -mx=5 -m0=lzma2' Condition="Exists('C:\Program Files\7-Zip\7z.exe')" />
     </Target>
 
 </Project>

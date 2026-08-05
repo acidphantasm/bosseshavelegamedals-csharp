@@ -1,68 +1,77 @@
 using System.Reflection;
+using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
-using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Helpers.Server;
 using SPTarkov.Server.Core.Models.Enums;
-using SPTarkov.Server.Core.Models.Enums.Hideout;
 using SPTarkov.Server.Core.Models.Spt.Mod;
-using SPTarkov.Server.Core.Models.Utils;
-using SPTarkov.Server.Core.Services;
+using SPTarkov.Server.Core.Models.Spt.Tables;
+using Range = SemanticVersioning.Range;
+using Version = SemanticVersioning.Version;
 
 namespace BossesHaveLegaMedals;
 
-public record ModMetadata : AbstractModMetadata
+public sealed class ModMetadata : IModMetadata
 {
-    public override string ModGuid { get; init; } = "com.acidphantasm.bosseshavelegamedals";
-    public override string Name { get; init; } = "Bosses Have Lega Medals";
-    public override string Author { get; init; } = "acidphantasm";
-    public override List<string>? Contributors { get; init; }
-    public override SemanticVersioning.Version Version { get; init; } = new("2.0.1");
-    public override SemanticVersioning.Range SptVersion { get; init; } = new("~4.0.10");
-    public override List<string>? Incompatibilities { get; init; }
-    public override Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; }
-    public override string? Url { get; init; }
-    public override bool? IsBundleMod { get; init; }
-    public override string? License { get; init; } = "MIT";
+    public string ModGuid { get; init; } = "com.acidphantasm.bosseshavelegamedals";
+    public string Name { get; init; } = "Bosses Have Lega Medals";
+    public string Author { get; init; } = "acidphantasm";
+    public List<string>? Contributors { get; init; }
+    public Version Version { get; init; } = new("2.1.0");
+    public Range SptVersion { get; init; } = new("~4.1.0");
+    public bool HasPrepatcher { get; init; } = false;
+    public List<string>? Incompatibilities { get; init; }
+    public Dictionary<string, Range>? ModDependencies { get; init; }
+    public string? Url { get; init; }
+    public string License { get; init; } = "MIT";
 }
 
-[Injectable(TypePriority = OnLoadOrder.PostDBModLoader + 1)]
+[Injectable(TypePriority = OnLoadOrder.PostLoad + 1)]
 public class BossesHaveLegaMedals(
     ISptLogger<BossesHaveLegaMedals> logger,
-    DatabaseService databaseService,
+    BotTable botTable,
     ModHelper modHelper)
     : IOnLoad
 {
     private ModConfig? _modConfig;
-    
-    public Task OnLoad()
+
+    public Task OnLoadAsync(CancellationToken cancellationToken)
     {
         var pathToMod = modHelper.GetAbsolutePathToModFolder(Assembly.GetExecutingAssembly());
         _modConfig = modHelper.GetJsonDataFromFile<ModConfig>(pathToMod, "config.json");
-        
+
         EditBots();
-        
+        logger.Success("Bosses Have Lega Medals applied.");
+
         return Task.CompletedTask;
     }
-    
+
     private void EditBots()
     {
-        var bots = databaseService.GetBots().Types;
+        var bots = botTable.Types;
 
         foreach (var (key, botType) in bots)
         {
+            if (botType?.BotInventory?.Items?.Pockets is null)
+            {
+                continue;
+            }
+
             var botName = key.ToLowerInvariant();
-            var isBoss = botName.Contains("boss") || _modConfig.IncludeFollowers && botName.Contains("follower");
-            
-            if (!isBoss) continue;
+            var isBoss = botName.Contains("boss")
+                || (_modConfig!.IncludeFollowers && botName.Contains("follower"));
+
+            if (!isBoss)
+            {
+                continue;
+            }
+
             var bossPockets = botType.BotInventory.Items.Pockets;
-            var totalBossPocketValues = bossPockets.Sum( kvp => kvp.Value);
+            var totalBossPocketValues = bossPockets.Sum(kvp => kvp.Value);
+            var config = _modConfig!;
 
-            double value = 0;
-            double guess = 0;
-            double rollChance = 0;
-
-            guess = _modConfig.LegaMedalChance / 100 * totalBossPocketValues;
-            value = Math.Round((_modConfig.LegaMedalChance / 100) * (totalBossPocketValues + guess));
+            var guess = config.LegaMedalChance / 100 * totalBossPocketValues;
+            var value = Math.Round((config.LegaMedalChance / 100) * (totalBossPocketValues + guess));
             bossPockets.TryAdd(ItemTpl.BARTER_LEGA_MEDAL, value);
         }
     }
